@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-from dask import dataframe as dd
 import os
 
 from sklearn.ensemble import ExtraTreesRegressor
@@ -11,7 +10,7 @@ from compiledtrees import code_gen
 
 
 def csvs_to_dataframes(csv_files):
-    return dd.read_csv(csv_files).compute(scheduler='threads')
+    return pd.concat([pd.read_csv(x) for x in csv_files])
 
 
 def get_arg_cols(df):
@@ -22,36 +21,28 @@ def extract_medians(df, arg_cols=None, target_field="time"):
     if arg_cols is None:
         arg_cols = get_arg_cols(df)
 
-    return df.groupby(arg_cols).apply(
-                lambda x:
-                pd.Series(x[target_field].median(), index=[target_field])
-            ).reset_index()
+    return df.groupby(arg_cols)[target_field].median().reset_index()
 
 
 def add_percentiles(df, arg_cols=None, target_field="time"):
-    def compute_rank(values, bins=10):
-        if len(values) < bins:
-            raise Exception("Cannot parse this kernel with {} bins it's a group "
-                            "with only {} samples".format(bins, len(values)))
-        varray = values.to_numpy()
-        svals = sorted(varray)
-        nvals = len(svals)
-        indices = list(np.linspace(nvals//bins, nvals - 1, bins).astype(int))
-        bin_vals = np.take(svals, indices)
-
-        for i, val in enumerate(bin_vals):
-            mask = varray <= val
-            varray[mask] = i
-
-        return varray.astype(int)
+    def generate_percentiles(df):
+        return list(zip(
+                list(range(0, 10, 1)),
+                np.percentile(df, list(range(0, 100, 10)))))
 
     if arg_cols is None:
         arg_cols = get_arg_cols(df)
 
-    try:
-        df['argp'] = df.groupby(arg_cols)[target_field].transform(compute_rank)
-    except:
-        print("add_percentiles failed to add any percentiles.")
+    df = df.groupby(arg_cols)[target_field] \
+           .apply(generate_percentiles) \
+           .reset_index() \
+           .explode(target_field)
+
+    df[["argp", target_field]] = pd.DataFrame(
+            df[target_field].tolist(),
+            index=df.index)
+
+    return df
 
 
 def split_test_train(df, train_size=0.8, arg_cols=None, target_field='time'):
@@ -62,14 +53,14 @@ def split_test_train(df, train_size=0.8, arg_cols=None, target_field='time'):
                             train_size=train_size)
 
 
-def train_ETR_model(X, y, n_jobs=-1, criterion="mse", n_estimators=100):
+def train_ETR_model(X, y, n_jobs=-1, criterion="mse", n_estimators=10):
     model = ExtraTreesRegressor(n_jobs=n_jobs,
                                 criterion=criterion, n_estimators=n_estimators)
     model.fit(X, y)
     return model
 
 
-def train_RF_model(X, y, n_jobs=-1, criterion="mse", n_estimators=100):
+def train_RF_model(X, y, n_jobs=-1, criterion="mse", n_estimators=10):
     model = RandomForestRegressor(n_jobs=n_jobs,
                                   criterion=criterion,
                                   n_estimators=n_estimators)
@@ -82,8 +73,7 @@ def clean_up_code(lines, new_name=None):
         line = line.lstrip()
         if "evaluate" in line:
             if "__attribute__((__always_inline__))" in line:
-                declaration = line.find("double")
-                line = line[declaration:]
+                line = line.replace("__attribute__((__always_inline__))", "")
             elif "+=" not in line:  # This is the declaration
                 line = "__attribute__((pure)) " + line
         if new_name:
