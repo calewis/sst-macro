@@ -55,7 +55,7 @@ namespace clang {
   class SourceManager;
   class LangOptions;
   class Sema;
-}
+} // namespace clang
 
 namespace modes {
 

@@ -27,8 +27,8 @@ def extract_medians(df, arg_cols=None, target_field="time"):
 def add_percentiles(df, arg_cols=None, target_field="time"):
     def generate_percentiles(df):
         return list(zip(
-                list(range(0, 10, 1)),
-                np.percentile(df, list(range(0, 100, 10)))))
+            list(range(0, 10, 1)),
+            np.percentile(df, list(range(0, 100, 10)))))
 
     if arg_cols is None:
         arg_cols = get_arg_cols(df)
@@ -39,8 +39,8 @@ def add_percentiles(df, arg_cols=None, target_field="time"):
            .explode(target_field)
 
     df[["argp", target_field]] = pd.DataFrame(
-            df[target_field].tolist(),
-            index=df.index)
+        df[target_field].tolist(),
+        index=df.index)
 
     return df
 
@@ -97,24 +97,63 @@ def write_cmakelist(output_dir, libname=None):
         f.write(cmake_text)
 
 
-def compile_forest_to_files(model, name, output_dir):
-    files = code_gen.code_gen_ensemble(
-            trees=[e.tree_ for e in model.estimators_],
-            individual_learner_weight=1.0/model.n_estimators,
-            initial_value=0.0, n_jobs=-1)
+def write_sst_percentile(output_dir, Seed=None, NumBuckets=10):
+    if Seed == None:
+        Seed = "std::random_device{}()"
 
+    func_text = f"""#include <random>
+extern "C" {{
+int sst_randompercentile(){{
+   thread_local std::mt19937 gen({Seed});
+   static std::uniform_int_distribution<> dist(0, {NumBuckets-1});
+   return dist(gen);
+}}
+}}
+"""
+
+    with open(os.path.join(output_dir, "sst_percentile.cpp"), 'w') as f:
+        f.write(func_text)
+
+
+def compile_forest_to_files(model, name, output_dir, doArgP=False):
+    files = code_gen.code_gen_ensemble(
+        trees=[e.tree_ for e in model.estimators_],
+        individual_learner_weight=1.0/model.n_estimators,
+        initial_value=0.0, n_jobs=-1)
+
+    nfeat = model.n_features_
     files_as_lines = []
     for f in files:
         f.seek(0)
         files_as_lines.append(
-                clean_up_code(
-                    [x.decode("utf-8").rstrip() for x in f.readlines()],
-                    name
-                ))
+            clean_up_code(
+                [x.decode("utf-8").rstrip() for x in f.readlines()],
+                name
+            ))
 
     i = 0
     for filelines in files_as_lines:
         if any("+=" in line for line in filelines):
+            if doArgP:
+                for i in range(len(filelines)):
+                    if "extern \"C\"" in filelines[i]:
+                        filelines.insert(i+1,
+                                         f"int sst_randompercentile();\nstatic float {name}_array[{nfeat}];")
+
+                for i in range(len(filelines)):
+                    if f"{name}(float* f)" in filelines[i]:
+                        insertion_text = f"""
+                        float *old_f = f;
+                        f = {name}_array;
+                        for(auto i = 0; i < {nfeat- 1} ; ++i){{
+                            f[i] = old_f[i];
+                        }}
+                        f[{nfeat-1}] = sst_randompercentile();
+                        """
+                        filelines.insert(i+1, insertion_text)
+                        # filelines.insert(0, "#include<iostream>\n")
+                        break
+
             with open(os.path.join(output_dir, name + ".cpp"), 'w') as f:
                 f.writelines(filelines)
         else:

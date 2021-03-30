@@ -87,7 +87,7 @@ public:
   void deactivate() override;
 
 private:
-  void activateMemoize(clang::Stmt *S);
+  void activateMemoize(clang::Stmt *S, bool IsFunctionBody = false);
   void activateSkeletonize(clang::Stmt *S);
 
   void activateMemoize(clang::Decl *D);

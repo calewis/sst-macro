@@ -12,6 +12,8 @@
 #define omp_get_max_threads sstmac_omp_get_max_threads
 #define omp_get_wtime sstmac_omp_get_wtime
 #define omp_get_num_procs sstmac_omp_get_num_procs
+#define omp_get_proc_bind sstmac_omp_get_proc_bind
+#define omp_get_num_places sstmac_omp_get_num_places
 #define omp_set_num_threads sstmac_omp_set_num_threads
 #define omp_in_parallel sstmac_omp_in_parallel
 #define omp_get_level sstmac_omp_get_level
@@ -37,6 +39,10 @@ int sstmac_omp_test_lock(sstmac_omp_lock_t *lock);
 int sstmac_omp_get_thread_num();
 
 int sstmac_omp_get_num_procs();
+
+int sstmac_omp_get_proc_bind();
+
+int sstmac_omp_get_num_places();
 
 int sstmac_omp_get_num_threads();
 

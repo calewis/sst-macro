@@ -366,11 +366,11 @@ SSTOpenMPParallelPragma::SSTOpenMPParallelPragma(SourceLocation loc, const std::
 using namespace modes;
 
 static PragmaRegister<SSTTokenListPragmaShim, SSTLoopCountPragma, true> loopCountPragma(
-    "sst", "loop_count", SKELETONIZE | PUPPETIZE | SHADOWIZE);
+    "sst", "loop_count", PUPPETIZE | SHADOWIZE);
 static PragmaRegister<SSTStringPragmaShim, SSTMemoryPragma, true> memoryPragma(
     "sst", "memory", SKELETONIZE | SHADOWIZE);
-static PragmaRegister<SSTNoArgsPragmaShim, SSTComputePragma, true> computePragma(
-    "sst", "compute", SKELETONIZE | SHADOWIZE);
+//static PragmaRegister<SSTNoArgsPragmaShim, SSTComputePragma, true> computePragma(
+//    "sst", "compute", SKELETONIZE | SHADOWIZE);
 static PragmaRegister<SSTNoArgsPragmaShim, SSTComputePragma, true> alwaysComputePragma(
     "sst", "always_compute", SKELETONIZE | SHADOWIZE | ENCAPSULATE);
 // static PragmaRegister<SSTArgMapPragmaShim, SSTMemoizeComputePragma, true> memoizePragma(

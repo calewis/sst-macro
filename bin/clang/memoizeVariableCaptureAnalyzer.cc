@@ -89,7 +89,7 @@ auto filterExprs(llvm::SmallPtrSet<Expr const *, 4> const &C) {
   llvm::SmallPtrSet<Expr const *, 4> out;
   llvm::SmallSet<std::string, 4> strings;
 
-  for (auto expr : C) {
+  for (auto const *expr : C) {
     if (!isArithmeticType(expr) || exprToLiteral(expr) ||
         llvm::isa<CallExpr>(expr)) {
       continue;
@@ -183,6 +183,23 @@ auto forStmtConditionCaptures(clang::Stmt const *FS) {
   // clang-format on
 
   return matchers::toPtrSet<Expr>(BN, "FinalExpr");
+}
+
+auto getDeclCaptures(clang::Decl const *D) {
+  using namespace clang;
+  auto const *FD = dyn_cast<FunctionDecl>(D);
+  if (FD == nullptr) {
+    D->dumpColor();
+    llvm::errs() << "\n";
+    errorAbort(D, "Memoizing on a decl that isn't a function.");
+  }
+
+  // clang-format off
+  FD->dumpColor();
+  // clang-format on
+
+  return llvm::SmallPtrSet<Expr *,
+                           4>{}; // matchers::toPtrSet<Expr>(BN, "FinalExpr");
 }
 
 auto stmtConditionCaptures(clang::Stmt const *FS) {
@@ -283,6 +300,27 @@ auto getLoopVarDeclsInitializers(clang::Stmt const *S) {
 
 } // namespace
 
+llvm::SmallPtrSet<Expr const *, 4>
+memoizationAutoMatcher(clang::Decl const *D, std::string const &namedDeclsRegex,
+                       capture::AutoCapture ac) {
+
+  llvm::SmallPtrSet<Expr const *, 4> results;
+  if (!namedDeclsRegex.empty()) {
+    // TODO decide if we will need this, nop for now
+  }
+
+  using namespace capture;
+  if (ac == AutoCapture::AllConditions) {
+    auto tmp = getDeclCaptures(D);
+    results.insert(tmp.begin(), tmp.end());
+  } else {
+    errorAbort(
+        D->getBeginLoc(),
+        "Memoization of Decls only works with all conditions at the moment.");
+  }
+
+  return filterExprs(results);
+}
 
 llvm::SmallPtrSet<Expr const *, 4>
 memoizationAutoMatcher(clang::Stmt const *S, std::string const &namedDeclsRegex,

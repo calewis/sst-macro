@@ -251,6 +251,7 @@ App::App(SST::Params& params, SoftwareId sid,
   omp_context& active = omp_contexts_.back();
   active.max_num_subthreads = active.requested_num_subthreads =
     env_params.find<int>("OMP_NUM_THREADS", 1);
+  env_params.print_all_params(std::cout);
   active.level = 0;
   active.num_threads = 1;
 

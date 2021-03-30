@@ -58,4 +58,9 @@ memoizationAutoMatcher(clang::Stmt const *S,
                        std::string const &namedDeclsRegex,
                        capture::AutoCapture ac);
 
+llvm::SmallPtrSet<clang::Expr const *, 4>
+memoizationAutoMatcher(clang::Decl const *D,
+                       std::string const &namedDeclsRegex,
+                       capture::AutoCapture ac);
+
 #endif //  bin_clang_memoizeVariableCaputreAnalyzer_H

@@ -2394,10 +2394,10 @@ void
 PragmaActivateGuard::deletePragmaText(SSTPragma *prg)
 {
   //eliminate the pragma text
-  if (prg->depth == 0){
+  //if (prg->depth == 0){
     SourceRange rng(prg->pragmaDirectiveLoc, prg->endPragmaLoc);
     ::replace(rng, "");
-  }
+  //}
 }
 
 void

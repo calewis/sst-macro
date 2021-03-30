@@ -61,7 +61,7 @@ void* loadExternLibrary(const std::string& libname, const std::string& searchPat
   // This is a little weird, but always try the last path - if we
   // didn't succeed in the stat, we'll get a file not found error
   // from dlopen, which is a useful error message for the user.
-  void* handle = dlopen(fullpath.c_str(), RTLD_NOW|RTLD_LOCAL);
+  void* handle = dlopen(fullpath.c_str(), RTLD_NOW|RTLD_GLOBAL);
   if (NULL == handle) {
     spkt_abort_printf("Opening library %s failed\n:%s", libname.c_str(), dlerror());
   }

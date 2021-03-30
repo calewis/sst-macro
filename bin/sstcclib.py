@@ -166,7 +166,8 @@ class Context:
     return self.mode == self.SKELETONIZE
 
   def srcToSrc(self):
-    return self.hasClang and self.simulateMode()
+    modeNeedsS2S = self.mode == self.SKELETONIZE or self.mode == self.MEMOIZE
+    return self.hasClang and modeNeedsS2S
 
   def modeString(self):
     if self.mode == self.SKELETONIZE: return "SKELETONIZE"
